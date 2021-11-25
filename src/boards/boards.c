@@ -70,9 +70,8 @@ void board_init(void)
   // Use Internal OSC to compatible with all boards
   NRF_CLOCK->LFCLKSRC = CLOCK_LFCLKSRC_SRC_RC;
   NRF_CLOCK->TASKS_LFCLKSTART = 1UL;
-
-  button_init(BUTTON_DFU);
-  button_init(BUTTON_FRESET);
+  //button_init(BUTTON_DFU);
+  //button_init(BUTTON_FRESET);
   NRFX_DELAY_US(100); // wait for the pin state is stable
 
 #if LEDS_NUMBER > 0
@@ -324,14 +323,13 @@ void led_state(uint32_t state)
     } else if (temp_color_active) {
         final_color = (uint8_t*)&rgb_color;
     }
-
-#if defined(LED_NEOPIXEL) || defined(LED_RGB_RED_PIN) || defined(LED_APA102)
+    #if defined(LED_NEOPIXEL) || defined(LED_RGB_RED_PIN) || defined(LED_APA102)
     if (final_color != NULL) {
         neopixel_write(final_color);
     }
-#else
+    #else
     (void) final_color;
-#endif
+    #endif
 }
 
 #ifdef LED_NEOPIXEL
