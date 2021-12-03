@@ -29,9 +29,14 @@
 /*------------------------------------------------------------------*/
 /* LED
  *------------------------------------------------------------------*/
-#define LEDS_NUMBER           0//1  // red LED
-#define LED_PRIMARY_PIN       //_PINNUM(0, 24)
+#define LEDS_NUMBER           1  // red LED
+#define LED_PRIMARY_PIN       _PINNUM(0, 17)
 #define LED_STATE_ON          0
+
+#define LED_RGB_RED_PIN       _PINNUM(0, 26)
+#define LED_RGB_GREEN_PIN     _PINNUM(0, 30)
+#define LED_RGB_BLUE_PIN      _PINNUM(0, 6)
+#define BOARD_RGB_BRIGHTNESS  0x404040
 
 /*------------------------------------------------------------------*/
 /* BUTTON
