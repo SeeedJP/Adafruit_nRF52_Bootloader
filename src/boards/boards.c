@@ -171,9 +171,13 @@ void SysTick_Handler(void)
 {
   _systick_count++;
 
-  led_tick();
+  static uint32_t called_led_tick_count = 0;
+  if (_systick_count - called_led_tick_count >= 50)
+  {
+    led_tick();
+    called_led_tick_count = _systick_count;
+  }
 }
-
 
 void pwm_teardown(NRF_PWM_Type* pwm )
 {
