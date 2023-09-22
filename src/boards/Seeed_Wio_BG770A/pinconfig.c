@@ -17,3 +17,14 @@ const uint32_t bootloaderConfig[] =
   0, 0, 0, 0, 0, 0, 0, 0
   /* CF2 END */
 };
+
+/**< This variable ensures that the linker script will write output voltage from REG0 regulator stage to the UICR register. This value will be written in the HEX file and thus written to UICR when the bootloader is flashed into the chip. */
+//  0: 1.8V
+//  1: 2.1V
+//  2: 2.4V
+//  3: 2.7V
+//  4: 3.0V
+//  5: 3.3V
+//  7: 1.8V (Default voltage)
+__attribute__ ((section(".uicrREGOUT0")))
+volatile uint32_t m_uicr_regout0 = 5; // 3.3V
