@@ -2,7 +2,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2018 Ha Thach for Adafruit Industries
- * Copyright (C) Seeed K.K.
+ * Copyright (C) 2023 Seeed K.K.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@
 //--------------------------------------------------------------------+
 // BLE OTA
 //--------------------------------------------------------------------+
-#define BLEDIS_MANUFACTURER   "Seeed Studio"
+#define BLEDIS_MANUFACTURER   "Seeed"
 #define BLEDIS_MODEL          "Wio BG770A"
 
 //--------------------------------------------------------------------+
@@ -54,7 +54,7 @@
 #define USB_DESC_CDC_ONLY_PID  0x0044   // Need to change
 
 //------------- UF2 -------------//
-#define UF2_PRODUCT_NAME      "Seeed Studio Wio BG770A"
+#define UF2_PRODUCT_NAME      "Seeed Wio BG770A"
 #define UF2_VOLUME_LABEL      "BOOT"
 #define UF2_BOARD_ID          "nRF52840-WioBG770A-v1"
 #define UF2_INDEX_URL         "https://www.seeedstudio.com/"
