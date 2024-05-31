@@ -82,7 +82,7 @@ void board_init(void)
 #ifdef BUTTON_FRESET
   button_init(BUTTON_FRESET);
 #endif
-  NRFX_DELAY_US(100); // wait for the pin state is stable
+  NRFX_DELAY_US(BUTTON_SETUP_DELAY_US); // wait for the pin state is stable
 
 #if LEDS_NUMBER > 0
   // use PMW0 for LED RED
