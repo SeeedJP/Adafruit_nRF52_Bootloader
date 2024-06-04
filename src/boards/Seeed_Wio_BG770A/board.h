@@ -42,7 +42,7 @@
 #define BUTTON_1              _PINNUM(1, 2) // DFU: USERBTN
 #define BUTTON_2              _PINNUM(1, 2) // FRST: USERBTN
 #define BUTTON_PULL           NRF_GPIO_PIN_PULLUP
-#define BUTTON_SETUP_DELAY_US 1000
+#define BUTTON_SETUP_DELAY_US 3000
 
 //--------------------------------------------------------------------+
 // BLE OTA
