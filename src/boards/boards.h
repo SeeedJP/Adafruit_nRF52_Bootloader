@@ -45,6 +45,10 @@
 #define BUTTON_FRESET   BUTTON_2
 #endif
 
+#ifndef BUTTON_SETUP_DELAY_US
+#define BUTTON_SETUP_DELAY_US  100
+#endif
+
 // The primary LED is usually Red but not in all cases.
 #define LED_PRIMARY 0
 // The secondary LED, when available, is usually blue.
