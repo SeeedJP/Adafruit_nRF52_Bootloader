@@ -53,8 +53,8 @@
 // USB
 //--------------------------------------------------------------------+
 #define USB_DESC_VID           0x2886
-#define USB_DESC_UF2_PID       0x0044   // Need to change
-#define USB_DESC_CDC_ONLY_PID  0x0044   // Need to change
+#define USB_DESC_UF2_PID       0x0056   // Need to change
+#define USB_DESC_CDC_ONLY_PID  0x0056   // Need to change
 
 //------------- UF2 -------------//
 #define UF2_PRODUCT_NAME      "Seeed Wio BG770A"
