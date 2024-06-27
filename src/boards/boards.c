@@ -44,8 +44,6 @@ void neopixel_teardown(void);
 // IMPLEMENTATION
 //--------------------------------------------------------------------+
 
-#if defined(BUTTON_DFU) || defined(BUTTON_FRESET)
-
 static uint32_t _systick_count = 0;
 void SysTick_Handler(void)
 {
@@ -58,6 +56,8 @@ void SysTick_Handler(void)
     called_led_tick_count = _systick_count;
   }
 }
+
+#if defined(BUTTON_DFU) || defined(BUTTON_FRESET)
 
 void button_init(uint32_t pin) {
   if (BUTTON_PULL == NRF_GPIO_PIN_PULLDOWN) {
