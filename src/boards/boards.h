@@ -45,6 +45,10 @@
 #define BUTTON_FRESET   BUTTON_2
 #endif
 
+#ifndef BUTTON_SETUP_DELAY_US
+#define BUTTON_SETUP_DELAY_US  100
+#endif
+
 // The primary LED is usually Red but not in all cases.
 #define LED_PRIMARY 0
 // The secondary LED, when available, is usually blue.
@@ -111,6 +115,16 @@ bool button_pressed(uint32_t pin);
 #endif
 
 bool is_ota(void);
+
+//--------------------------------------------------------------------+
+// Display
+//--------------------------------------------------------------------+
+#ifdef DISPLAY_PIN_SCK
+void board_display_init(void);
+void board_display_teardown(void);
+void board_display_draw_line(uint16_t y, uint8_t const* buf, size_t nbytes);
+void screen_draw_drag(void);
+#endif
 
 //--------------------------------------------------------------------+
 // DEBUG

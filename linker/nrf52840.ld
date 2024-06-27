@@ -39,6 +39,9 @@ MEMORY
   /** Location in UICR where bootloader start address is stored. */
   UICR_BOOTLOADER (r) : ORIGIN = 0x10001014, LENGTH = 0x04
   
+  /** Location in UICR where output voltage from REG0 regulator stage is stored. */
+  UICR_REGOUT0 (r) : ORIGIN = 0x10001304, LENGTH = 0x04
+  
   /** Location in UICR where mbr params page address is stored. */
   UICR_MBR_PARAM_PAGE(r) : ORIGIN = 0x10001018, LENGTH = 0x04
 }
@@ -63,6 +66,12 @@ SECTIONS
     
   } > BOOTLOADER_SETTINGS
 
+  /* Write output voltage from REG0 regulator stage in UICR. */
+  .uicrREGOUT0 : 
+  {
+    KEEP(*(.uicrREGOUT0))
+  } > UICR_REGOUT0
+  
   /* Write the bootloader address in UICR. */
   .uicrBootStartAddress : 
   {
