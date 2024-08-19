@@ -2,7 +2,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2018 Ha Thach for Adafruit Industries
- * Copyright (C) 2023 Seeed K.K.
+ * Copyright (C) 2024 Seeed K.K.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,10 +38,7 @@
 /*------------------------------------------------------------------*/
 /* BUTTON
  *------------------------------------------------------------------*/
-#define BUTTONS_NUMBER        1
-#define BUTTON_FRESET         _PINNUM(1, 2) // USERBTN
-#define BUTTON_PULL           NRF_GPIO_PIN_PULLUP
-#define BUTTON_SETUP_DELAY_US 3000
+#define BUTTONS_NUMBER        0
 
 //--------------------------------------------------------------------+
 // BLE OTA
@@ -53,8 +50,8 @@
 // USB
 //--------------------------------------------------------------------+
 #define USB_DESC_VID           0x2886
-#define USB_DESC_UF2_PID       0x0056   // Need to change
-#define USB_DESC_CDC_ONLY_PID  0x0056   // Need to change
+#define USB_DESC_UF2_PID       0x0056
+#define USB_DESC_CDC_ONLY_PID  0x0056
 
 //------------- UF2 -------------//
 #define UF2_PRODUCT_NAME      "Seeed Wio BG770A"
