@@ -175,6 +175,8 @@ int main(void) {
   PRINTF("Bootloader Start\r\n");
   led_state(STATE_BOOTLOADER_STARTED);
 
+  matsujirushi_print_bootloader_sesttings();
+
   // When updating SoftDevice, bootloader will reset before swapping SD
   if (bootloader_dfu_sd_in_progress()) {
     led_state(STATE_WRITING_STARTED);
@@ -390,6 +392,7 @@ static uint32_t ble_stack_init(void) {
 void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info) {
   volatile uint32_t* ARM_CM_DHCSR = ((volatile uint32_t*) 0xE000EDF0UL); /* Cortex M CoreDebug->DHCSR */
   if ((*ARM_CM_DHCSR) & 1UL) __asm("BKPT #0\n"); /* Only halt mcu if debugger is attached */
+  while (true){} // TODO
   NVIC_SystemReset();
 }
 

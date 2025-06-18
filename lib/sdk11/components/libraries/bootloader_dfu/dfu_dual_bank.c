@@ -33,9 +33,6 @@ static uint8_t                      m_init_packet[128];         /**< Init packet
 static uint8_t                      m_init_packet_length;       /**< Length of init packet received. */
 static uint16_t                     m_image_crc;                /**< Calculated CRC of the image received. */
 
-APP_TIMER_DEF(m_dfu_timer_id);                                  /**< Application timer id. */
-static bool                         m_dfu_timed_out = false;    /**< Boolean flag value for tracking DFU timer timeout state. */
-
 static pstorage_handle_t            m_storage_handle_swap;      /**< Pstorage handle for the swap area (bank 1). Bank used when updating an application or bootloader without SoftDevice. */
 static pstorage_handle_t            m_storage_handle_app;       /**< Pstorage handle for the application area (bank 0). Bank used when updating a SoftDevice w/wo bootloader. Handle also used when swapping received application from bank 1 to bank 0. */
 static pstorage_handle_t          * mp_storage_handle_active;   /**< Pointer to the pstorage handle for the active bank for receiving of data packets. */
@@ -83,46 +80,6 @@ static void pstorage_callback_handler(pstorage_handle_t * p_handle,
 }
 
 
-/**@brief Function for handling the DFU timeout.
- *
- * @param[in] p_context The timeout context.
- */
-static void dfu_timeout_handler(void * p_context)
-{
-    UNUSED_PARAMETER(p_context);
-    dfu_update_status_t update_status;
-
-    m_dfu_timed_out           = true;
-    update_status.status_code = DFU_TIMEOUT;
-
-    bootloader_dfu_update_process(update_status);
-}
-
-
-/**@brief   Function for restarting the DFU Timer.
- *
- * @details This function will stop and restart the DFU timer. This function will be called by the
- *          functions handling any DFU packet received from the peer that is transferring a firmware
- *          image.
- */
-static uint32_t dfu_timer_restart(void)
-{
-    if (m_dfu_timed_out)
-    {
-        // The DFU timer had already timed out.
-        return NRF_ERROR_INVALID_STATE;
-    }
-
-    uint32_t err_code = app_timer_stop(m_dfu_timer_id);
-    APP_ERROR_CHECK(err_code);
-
-    err_code = app_timer_start(m_dfu_timer_id, DFU_TIMEOUT_INTERVAL, NULL);
-    APP_ERROR_CHECK(err_code);
-
-    return err_code;
-}
-
-
 /**@brief   Function for preparing of flash before receiving SoftDevice image.
  *
  * @details This function will erase current application area to ensure sufficient amount of
@@ -131,15 +88,22 @@ static uint32_t dfu_timer_restart(void)
  */
 static void dfu_prepare_func_app_erase(uint32_t image_size)
 {
-    uint32_t err_code;
+  mp_storage_handle_active = &m_storage_handle_app;
 
-    mp_storage_handle_active = &m_storage_handle_app;
+  // Doing a SoftDevice update thus current application must be cleared to ensure enough space
+  // for new SoftDevice.
+  m_dfu_state = DFU_STATE_PREPARING;
 
-    // Doing a SoftDevice update thus current application must be cleared to ensure enough space
-    // for new SoftDevice.
-    m_dfu_state = DFU_STATE_PREPARING;
-    err_code    = pstorage_clear(&m_storage_handle_app, m_image_size);
+  if ( is_ota() )
+  {
+    uint32_t err_code = pstorage_clear(&m_storage_handle_app, m_image_size);
     APP_ERROR_CHECK(err_code);
+  }
+  else
+  {
+    flash_nrf5x_erase(m_storage_handle_app.block_id, m_image_size);
+    pstorage_callback_handler(&m_storage_handle_app, PSTORAGE_CLEAR_OP_CODE, NRF_SUCCESS, NULL, 0);
+  }
 }
 
 
@@ -156,8 +120,16 @@ static void dfu_prepare_func_swap_erase(uint32_t image_size)
     mp_storage_handle_active = &m_storage_handle_swap;
 
     m_dfu_state = DFU_STATE_PREPARING;
-    err_code    = pstorage_clear(&m_storage_handle_swap, DFU_IMAGE_MAX_SIZE_BANKED);
-    APP_ERROR_CHECK(err_code);
+    if ( is_ota() )
+    {
+        err_code    = pstorage_clear(&m_storage_handle_swap, image_size);
+        APP_ERROR_CHECK(err_code);
+    }
+    else
+    {
+        flash_nrf5x_erase(m_storage_handle_swap.block_id, image_size);
+        pstorage_callback_handler(&m_storage_handle_swap, PSTORAGE_CLEAR_OP_CODE, NRF_SUCCESS, NULL, 0);
+    }
 }
 
 
@@ -173,7 +145,8 @@ static void dfu_cleared_func_swap(void)
  */
 static void dfu_cleared_func_app(void)
 {
-    dfu_update_status_t update_status = {DFU_BANK_0_ERASED, };
+    dfu_update_status_t update_status = { 0 };
+    update_status.status_code = DFU_BANK_0_ERASED;
     bootloader_dfu_update_process(update_status);
 }
 
@@ -241,16 +214,28 @@ static uint32_t dfu_activate_sd(void)
  */
 static uint32_t dfu_activate_app(void)
 {
-    uint32_t err_code;
+    uint32_t err_code = NRF_SUCCESS;
 
-    // Erase BANK 0.
-    err_code = pstorage_clear(&m_storage_handle_app, m_start_packet.app_image_size);
-    APP_ERROR_CHECK(err_code);
+    if ( is_ota() )
+    {
+        // Erase
+        err_code = pstorage_clear(&m_storage_handle_app, m_start_packet.app_image_size);
+        APP_ERROR_CHECK(err_code);
 
-    err_code = pstorage_store(&m_storage_handle_app,
-                                  (uint8_t *)m_storage_handle_swap.block_id,
-                                  m_start_packet.app_image_size,
-                                  0);
+        // Write
+        err_code = pstorage_store(&m_storage_handle_app, (uint8_t *)m_storage_handle_swap.block_id, m_start_packet.app_image_size, 0);
+    }
+    else
+    {
+        // Erase
+        flash_nrf5x_erase(m_storage_handle_app.block_id, m_start_packet.app_image_size);
+        pstorage_callback_handler(&m_storage_handle_app, PSTORAGE_CLEAR_OP_CODE, NRF_SUCCESS, NULL, 0);
+
+        // Write
+        flash_nrf5x_write(m_storage_handle_app.block_id, (const void*)m_storage_handle_swap.block_id, m_start_packet.app_image_size, false);
+        flash_nrf5x_flush(false);
+        pstorage_callback_handler(&m_storage_handle_app, PSTORAGE_STORE_OP_CODE, NRF_SUCCESS, (uint8_t*)m_storage_handle_swap.block_id, m_start_packet.app_image_size);
+    }
 
     if (err_code == NRF_SUCCESS)
     {
@@ -311,16 +296,6 @@ uint32_t dfu_init(void)
     m_storage_handle_swap          = m_storage_handle_app;
     m_storage_handle_swap.block_id = DFU_BANK_1_REGION_START;
 
-    // Create the timer to monitor the activity by the peer doing the firmware update.
-    err_code = app_timer_create(&m_dfu_timer_id,
-                                APP_TIMER_MODE_SINGLE_SHOT,
-                                dfu_timeout_handler);
-    APP_ERROR_CHECK(err_code);
-
-    // Start the DFU timer.
-    err_code = app_timer_start(m_dfu_timer_id, DFU_TIMEOUT_INTERVAL, NULL);
-    APP_ERROR_CHECK(err_code);
-
     m_data_received = 0;
     m_dfu_state     = DFU_STATE_IDLE;
 
@@ -336,8 +311,6 @@ void dfu_register_callback(dfu_callback_t callback_handler)
 
 uint32_t dfu_start_pkt_handle(dfu_update_packet_t * p_packet)
 {
-    uint32_t err_code;
-
     m_start_packet = *(p_packet->params.start_packet);
 
     // Check that the requested update procedure is supported.
@@ -398,22 +371,11 @@ uint32_t dfu_start_pkt_handle(dfu_update_packet_t * p_packet)
         }
     }
 
-    switch (m_dfu_state)
-    {
-        case DFU_STATE_IDLE:
-            // Valid peer activity detected. Hence restart the DFU timer.
-            err_code = dfu_timer_restart();
-            VERIFY_SUCCESS(err_code);
-            m_functions.prepare(m_image_size);
+    if ( DFU_STATE_IDLE != m_dfu_state ) return NRF_ERROR_INVALID_STATE;
 
-            break;
+    m_functions.prepare(m_image_size);
 
-        default:
-            err_code = NRF_ERROR_INVALID_STATE;
-            break;
-    }
-
-    return err_code;
+    return NRF_SUCCESS;
 }
 
 
@@ -453,17 +415,18 @@ uint32_t dfu_data_pkt_handle(dfu_update_packet_t * p_packet)
                 return NRF_ERROR_DATA_SIZE;
             }
 
-            // Valid peer activity detected. Hence restart the DFU timer.
-            err_code = dfu_timer_restart();
-            VERIFY_SUCCESS(err_code);
-
             p_data = (uint32_t *)p_packet->params.data_packet.p_data_packet;
 
-            err_code = pstorage_store(mp_storage_handle_active,
-                                          (uint8_t *)p_data,
-                                          data_length,
-                                          m_data_received);
-            VERIFY_SUCCESS(err_code);
+            if ( is_ota() )
+            {
+              err_code = pstorage_store(mp_storage_handle_active, (uint8_t *)p_data, data_length, m_data_received);
+              VERIFY_SUCCESS(err_code);
+            }
+            else
+            {
+              flash_nrf5x_write(mp_storage_handle_active->block_id + m_data_received, p_data, data_length, false);
+              pstorage_callback_handler(mp_storage_handle_active, PSTORAGE_STORE_OP_CODE, NRF_SUCCESS, (uint8_t *) p_data, data_length);
+            }
 
             m_data_received += data_length;
 
@@ -474,6 +437,8 @@ uint32_t dfu_data_pkt_handle(dfu_update_packet_t * p_packet)
             }
             else
             {
+                if ( !is_ota() ) flash_nrf5x_flush(false);
+
                 // The entire image has been received. Return NRF_SUCCESS.
                 err_code = NRF_SUCCESS;
             }
@@ -501,7 +466,7 @@ uint32_t dfu_init_pkt_complete(void)
     
     if (m_dfu_state == DFU_STATE_RX_INIT_PKT)
     {
-        err_code = dfu_init_prevalidate(m_init_packet, m_init_packet_length);
+        err_code = dfu_init_prevalidate(m_init_packet, m_init_packet_length, m_start_packet.dfu_update_mode);
         if (err_code == NRF_SUCCESS)
         {
             m_dfu_state = DFU_STATE_RX_DATA_PKT;
@@ -517,7 +482,6 @@ uint32_t dfu_init_pkt_complete(void)
 
 uint32_t dfu_init_pkt_handle(dfu_update_packet_t * p_packet)
 {
-    uint32_t err_code = NRF_SUCCESS;
     uint32_t length;
 
     switch (m_dfu_state)
@@ -525,6 +489,7 @@ uint32_t dfu_init_pkt_handle(dfu_update_packet_t * p_packet)
         case DFU_STATE_RDY:
             m_dfu_state = DFU_STATE_RX_INIT_PKT;
             // When receiving init packet in state ready just update and fall through this case.         
+            /* FALLTHRU */
 
         case DFU_STATE_RX_INIT_PKT:
             // DFU initialization has been done and a start packet has been received.
@@ -533,10 +498,6 @@ uint32_t dfu_init_pkt_handle(dfu_update_packet_t * p_packet)
                 // Image write is already in progress. Cannot handle an init packet now.
                 return NRF_ERROR_INVALID_STATE;
             }
-
-            // Valid peer activity detected. Hence restart the DFU timer.
-            err_code = dfu_timer_restart();
-            VERIFY_SUCCESS(err_code);
 
             length = p_packet->params.data_packet.packet_length * sizeof(uint32_t);
             if ((m_init_packet_length + length) > sizeof(m_init_packet))
@@ -552,11 +513,10 @@ uint32_t dfu_init_pkt_handle(dfu_update_packet_t * p_packet)
 
         default:
             // Either the start packet was not received or dfu_init function was not called before.
-            err_code = NRF_ERROR_INVALID_STATE;
-            break;
+            return NRF_ERROR_INVALID_STATE;
     }
 
-    return err_code;
+    return NRF_SUCCESS;
 }
 
 
@@ -578,16 +538,9 @@ uint32_t dfu_image_validate()
             {
                 m_dfu_state = DFU_STATE_VALIDATE;
 
-                // Valid peer activity detected. Hence restart the DFU timer.
-                err_code = dfu_timer_restart();
-                if (err_code == NRF_SUCCESS)
-                {
-                    err_code = dfu_init_postvalidate((uint8_t *)mp_storage_handle_active->block_id,
-                                                     m_image_size);
-                    VERIFY_SUCCESS(err_code);
-
-                    m_dfu_state = DFU_STATE_WAIT_4_ACTIVATE;
-                }
+                err_code = dfu_init_postvalidate((uint8_t *)mp_storage_handle_active->block_id, m_image_size);
+                VERIFY_SUCCESS(err_code);
+                m_dfu_state = DFU_STATE_WAIT_4_ACTIVATE;
             }
             break;
 
@@ -607,11 +560,6 @@ uint32_t dfu_image_activate()
     switch (m_dfu_state)
     {
         case DFU_STATE_WAIT_4_ACTIVATE:
-
-            // Stop the DFU Timer because the peer activity need not be monitored any longer.
-            err_code = app_timer_stop(m_dfu_timer_id);
-            APP_ERROR_CHECK(err_code);
-
             err_code = m_functions.activate();
             break;
 
@@ -707,6 +655,11 @@ uint32_t dfu_sd_image_swap(void)
         uint32_t err_code;
         uint32_t sd_start        = SOFTDEVICE_REGION_START;
         uint32_t block_size      = (boot_settings.sd_image_start - sd_start) / 2;
+        
+        /* ##### FIX START ##### */
+        block_size &= ~(uint32_t)(CODE_PAGE_SIZE - 1); 
+        /* ##### FIX END ##### */       
+        
         uint32_t image_end       = boot_settings.sd_image_start + boot_settings.sd_image_size;
 
         uint32_t img_block_start = boot_settings.sd_image_start + 2 * block_size;
@@ -811,6 +764,9 @@ uint32_t dfu_sd_image_validate(void)
         uint32_t image_end       = bootloader_settings.sd_image_start + 
                                    bootloader_settings.sd_image_size;
 
+        /* ##### FIX START ##### */
+        block_size &= ~(uint32_t)(CODE_PAGE_SIZE - 1); 
+        /* ##### FIX END ##### */       
         uint32_t img_block_start = bootloader_settings.sd_image_start + 2 * block_size;
         uint32_t sd_block_start  = sd_start + 2 * block_size;
 

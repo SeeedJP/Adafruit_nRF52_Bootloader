@@ -26,6 +26,8 @@
 #include "bootloader_types.h"
 #include <dfu_types.h>
 
+void matsujirushi_print_bootloader_sesttings();
+
 /**@brief Function for initializing the Bootloader.
  * 
  * @retval     NRF_SUCCESS If bootloader was succesfully initialized. 

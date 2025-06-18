@@ -22,7 +22,7 @@
 #endif
 
 // Application Address Space
-#define USER_FLASH_START              MBR_SIZE // skip MBR included in SD hex
+#define USER_FLASH_START              SOFTDEVICE_REGION_START // skip MBR included in SD hex
 #define USER_FLASH_END                (BOOTLOADER_REGION_START - DFU_APP_DATA_RESERVED)
 
 // Bootloader start address
