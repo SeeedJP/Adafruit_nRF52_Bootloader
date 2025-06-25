@@ -161,7 +161,7 @@ void matsujirushi_print_bootloader_sesttings()
   }
   PRINTF("  bank_0_crc: 0x%04x", p_bootloader_settings->bank_0_crc);
   PRINTF("  bank_0_size: %lu\r\n", p_bootloader_settings->bank_0_size);
-  PRINTF("                                ");
+  PRINTF("                                 ");
   PRINTF("  sd_image_start: 0x%08lx", p_bootloader_settings->sd_image_start);
   PRINTF("  sd_image_size: %lu", p_bootloader_settings->sd_image_size);
   PRINTF("  bl_image_size: %lu", p_bootloader_settings->bl_image_size);
@@ -175,6 +175,8 @@ void matsujirushi_print_bootloader_sesttings()
   case BANK_INVALID_APP: PRINTF("(BANK_INVALID_APP)"); break;
   default:              PRINTF("()"); break;
   }
+  PRINTF("  bank_1_crc: 0x%04x", p_bootloader_settings->bank_1_crc);
+  PRINTF("  bank_1_size: %lu\r\n", p_bootloader_settings->bank_1_size);
   PRINTF("\r\n");
 }
 
@@ -291,6 +293,8 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.bl_image_size  = 0;
     settings.app_image_size = 0;
     settings.bank_1         = p_bootloader_settings->bank_1;
+    settings.bank_1_crc     = p_bootloader_settings->bank_1_crc;
+    settings.bank_1_size    = p_bootloader_settings->bank_1_size;
 
     // m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
@@ -305,6 +309,8 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.bl_image_size  = 0;
     settings.app_image_size = 0;
     settings.bank_1         = BANK_INVALID_APP;
+    settings.bank_1_crc     = 0;
+    settings.bank_1_size    = 0;
 
     m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
@@ -319,6 +325,8 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.bl_image_size  = 0;
     settings.app_image_size = 0;
     settings.bank_1         = BANK_VALID_APP;
+    settings.bank_1_crc     = update_status.app_crc;
+    settings.bank_1_size    = update_status.app_size;
 
     m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
@@ -333,6 +341,8 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.bl_image_size  = update_status.bl_size;
     settings.app_image_size = update_status.app_size;
     settings.bank_1         = BANK_INVALID_APP;
+    settings.bank_1_crc     = 0;
+    settings.bank_1_size    = 0;
 
     m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
@@ -346,6 +356,8 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.bl_image_size  = update_status.bl_size;
     settings.app_image_size = update_status.app_size;
     settings.bank_1         = BANK_VALID_BOOT;
+    settings.bank_1_crc     = 0;
+    settings.bank_1_size    = 0;
 
     m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
@@ -369,6 +381,8 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.bl_image_size  = 0;
     settings.app_image_size = 0;
     settings.bank_1         = BANK_INVALID_APP;
+    settings.bank_1_crc     = 0;
+    settings.bank_1_size    = 0;
 
     m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
@@ -557,17 +571,9 @@ uint32_t bootloader_dfu_sd_update_finalize(void)
 void bootloader_settings_get(bootloader_settings_t * const p_settings)
 {
   bootloader_settings_t const * p_bootloader_settings;
-
   bootloader_util_settings_get(&p_bootloader_settings);
 
-  p_settings->bank_0         = p_bootloader_settings->bank_0;
-  p_settings->bank_0_crc     = p_bootloader_settings->bank_0_crc;
-  p_settings->bank_0_size    = p_bootloader_settings->bank_0_size;
-  p_settings->bank_1         = p_bootloader_settings->bank_1;
-  p_settings->sd_image_size  = p_bootloader_settings->sd_image_size;
-  p_settings->bl_image_size  = p_bootloader_settings->bl_image_size;
-  p_settings->app_image_size = p_bootloader_settings->app_image_size;
-  p_settings->sd_image_start = p_bootloader_settings->sd_image_start;
+  *p_settings = *p_bootloader_settings;
 }
 
 

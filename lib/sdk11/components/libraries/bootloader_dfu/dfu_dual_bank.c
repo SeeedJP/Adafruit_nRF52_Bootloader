@@ -768,19 +768,22 @@ uint32_t dfu_app_image_swap(void)
 {
     APP_ERROR_CHECK_BOOL(!is_ota()); // not supported in OTA mode.
 
+    bootloader_settings_t bootloader_settings;
+    bootloader_settings_get(&bootloader_settings);
+
     // Erase
-    flash_nrf5x_erase(DFU_BANK_0_REGION_START, DFU_IMAGE_MAX_SIZE_BANKED);  // TODO matsujirushi
+    flash_nrf5x_erase(DFU_BANK_0_REGION_START, bootloader_settings.bank_1_size);
 
     // Write
-    flash_nrf5x_write(DFU_BANK_0_REGION_START, (const void*)DFU_BANK_1_REGION_START, DFU_IMAGE_MAX_SIZE_BANKED, false);
+    flash_nrf5x_write(DFU_BANK_0_REGION_START, (const void*)DFU_BANK_1_REGION_START, bootloader_settings.bank_1_size, false);
     flash_nrf5x_flush(false);
 
     // Update status
     dfu_update_status_t update_status;
     memset(&update_status, 0, sizeof(dfu_update_status_t));
     update_status.status_code = DFU_UPDATE_APP_COMPLETE;
-    update_status.app_crc     = 0;
-    update_status.app_size    = 0;
+    update_status.app_crc     = bootloader_settings.bank_1_crc;
+    update_status.app_size    = bootloader_settings.bank_1_size;
     bootloader_dfu_update_process(update_status);
 
     return NRF_SUCCESS;
