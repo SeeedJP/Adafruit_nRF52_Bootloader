@@ -61,7 +61,7 @@ void bootloader_app_start(void);
  * @param[out] p_settings    A copy of the current bootloader settings is returned in the structure
  *                           provided.
  */
-void bootloader_settings_get(bootloader_settings_t * const p_settings);
+void bootloader_settings_get(bootloader_settings_t * p_settings);
 
 /**@brief Function for processing DFU status update.
  *

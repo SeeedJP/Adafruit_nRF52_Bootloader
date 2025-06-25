@@ -147,11 +147,13 @@ static void wait_for_events(void)
 
 void matsujirushi_print_bootloader_sesttings()
 {
-  bootloader_settings_t const * p_bootloader_settings;
-  bootloader_util_settings_get(&p_bootloader_settings);
+  bootloader_settings_t bootloader_settings;
+  bootloader_settings_get(&bootloader_settings);
+
   PRINTF("Bootloader Settings:\r\n");
-  PRINTF("  bank_0: 0x%04x", p_bootloader_settings->bank_0);
-  switch (p_bootloader_settings->bank_0) {
+  PRINTF("  settings_version: %u\r\n", bootloader_settings.settings_version);
+  PRINTF("  bank_0: 0x%04x", bootloader_settings.bank_0);
+  switch (bootloader_settings.bank_0) {
   case BANK_VALID_APP: PRINTF("(BANK_VALID_APP)"); break;
   case BANK_VALID_SD:   PRINTF("(BANK_VALID_SD)"); break;
   case BANK_VALID_BOOT: PRINTF("(BANK_VALID_BOOT)"); break;
@@ -159,15 +161,15 @@ void matsujirushi_print_bootloader_sesttings()
   case BANK_INVALID_APP: PRINTF("(BANK_INVALID_APP)"); break;
   default:              PRINTF("()"); break;
   }
-  PRINTF("  bank_0_crc: 0x%04x", p_bootloader_settings->bank_0_crc);
-  PRINTF("  bank_0_size: %lu\r\n", p_bootloader_settings->bank_0_size);
+  PRINTF("  bank_0_crc: 0x%04x", bootloader_settings.bank_0_crc);
+  PRINTF("  bank_0_size: %lu\r\n", bootloader_settings.bank_0_size);
   PRINTF("                                 ");
-  PRINTF("  sd_image_start: 0x%08lx", p_bootloader_settings->sd_image_start);
-  PRINTF("  sd_image_size: %lu", p_bootloader_settings->sd_image_size);
-  PRINTF("  bl_image_size: %lu", p_bootloader_settings->bl_image_size);
-  PRINTF("  app_image_size: %lu\r\n", p_bootloader_settings->app_image_size);
-  PRINTF("  bank_1: 0x%04x", p_bootloader_settings->bank_1);
-  switch (p_bootloader_settings->bank_1) {
+  PRINTF("  sd_image_start: 0x%08lx", bootloader_settings.sd_image_start);
+  PRINTF("  sd_image_size: %lu", bootloader_settings.sd_image_size);
+  PRINTF("  bl_image_size: %lu", bootloader_settings.bl_image_size);
+  PRINTF("  app_image_size: %lu\r\n", bootloader_settings.app_image_size);
+  PRINTF("  bank_1: 0x%04x", bootloader_settings.bank_1);
+  switch (bootloader_settings.bank_1) {
   case BANK_VALID_APP: PRINTF("(BANK_VALID_APP)"); break;
   case BANK_VALID_SD:   PRINTF("(BANK_VALID_SD)"); break;
   case BANK_VALID_BOOT: PRINTF("(BANK_VALID_BOOT)"); break;
@@ -175,8 +177,8 @@ void matsujirushi_print_bootloader_sesttings()
   case BANK_INVALID_APP: PRINTF("(BANK_INVALID_APP)"); break;
   default:              PRINTF("()"); break;
   }
-  PRINTF("  bank_1_crc: 0x%04x", p_bootloader_settings->bank_1_crc);
-  PRINTF("  bank_1_size: %lu\r\n", p_bootloader_settings->bank_1_size);
+  PRINTF("  bank_1_crc: 0x%04x", bootloader_settings.bank_1_crc);
+  PRINTF("  bank_1_size: %lu\r\n", bootloader_settings.bank_1_size);
   PRINTF("\r\n");
 }
 
@@ -186,8 +188,8 @@ bool bootloader_app_is_valid(void)
   bool success = false;
   uint32_t const app_addr = DFU_BANK_0_REGION_START;
 
-  bootloader_settings_t const *p_bootloader_settings;
-  bootloader_util_settings_get(&p_bootloader_settings);
+  bootloader_settings_t bootloader_settings;
+  bootloader_settings_get(&bootloader_settings);
 
   enum { EMPTY_FLASH = 0xFFFFFFFFUL };
 
@@ -199,19 +201,19 @@ bool bootloader_app_is_valid(void)
   }
 
   // The application in CODE region 1 is flagged as valid during update.
-  if ( p_bootloader_settings->bank_0 == BANK_VALID_APP )
+  if ( bootloader_settings.bank_0 == BANK_VALID_APP )
   {
     uint16_t image_crc = 0;
 
     // A stored crc value of 0 indicates that CRC checking is not used.
-    if ( p_bootloader_settings->bank_0_crc != 0 )
+    if ( bootloader_settings.bank_0_crc != 0 )
     {
       image_crc = crc16_compute((uint8_t*) app_addr,
-                                p_bootloader_settings->bank_0_size,
+                                bootloader_settings.bank_0_size,
                                 NULL);
     }
 
-    success = (image_crc == p_bootloader_settings->bank_0_crc);
+    success = (image_crc == bootloader_settings.bank_0_crc);
   }
 
   return success;
@@ -220,6 +222,8 @@ bool bootloader_app_is_valid(void)
 
 static void bootloader_settings_save(bootloader_settings_t * p_settings)
 {
+  p_settings->settings_version = BOOTLOADER_SETTINGS_VERSION;
+
   if ( is_ota() )
   {
     uint32_t err_code = pstorage_clear(&m_bootsettings_handle, sizeof(bootloader_settings_t));
@@ -241,7 +245,7 @@ static void bootloader_settings_save(bootloader_settings_t * p_settings)
 void bootloader_dfu_update_process(dfu_update_status_t update_status)
 {
   __attribute__((aligned(4)))  static bootloader_settings_t settings;
-  bootloader_settings_t const * p_bootloader_settings;
+  bootloader_settings_t bootloader_settings;
 
   PRINTF("bootloader_dfu_update_process(%d", update_status.status_code);
   switch (update_status.status_code)
@@ -281,7 +285,7 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
 
   matsujirushi_print_bootloader_sesttings();
 
-  bootloader_util_settings_get(&p_bootloader_settings);
+  bootloader_settings_get(&bootloader_settings);
 
   if (update_status.status_code == DFU_BANK_0_ERASED)
   {
@@ -292,9 +296,9 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.sd_image_size  = 0;
     settings.bl_image_size  = 0;
     settings.app_image_size = 0;
-    settings.bank_1         = p_bootloader_settings->bank_1;
-    settings.bank_1_crc     = p_bootloader_settings->bank_1_crc;
-    settings.bank_1_size    = p_bootloader_settings->bank_1_size;
+    settings.bank_1         = bootloader_settings.bank_1;
+    settings.bank_1_crc     = bootloader_settings.bank_1_crc;
+    settings.bank_1_size    = bootloader_settings.bank_1_size;
 
     // m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
@@ -349,9 +353,9 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
   }
   else if (update_status.status_code == DFU_UPDATE_BOOT_COMPLETE)
   {
-    settings.bank_0         = p_bootloader_settings->bank_0;
-    settings.bank_0_crc     = p_bootloader_settings->bank_0_crc;
-    settings.bank_0_size    = p_bootloader_settings->bank_0_size;
+    settings.bank_0         = bootloader_settings.bank_0;
+    settings.bank_0_crc     = bootloader_settings.bank_0_crc;
+    settings.bank_0_size    = bootloader_settings.bank_0_size;
     settings.sd_image_size  = update_status.sd_size;
     settings.bl_image_size  = update_status.bl_size;
     settings.app_image_size = update_status.app_size;
@@ -364,7 +368,7 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
   }
   else if (update_status.status_code == DFU_UPDATE_SD_SWAPPED)
   {
-    if (p_bootloader_settings->bank_0 == BANK_VALID_SD)
+    if (bootloader_settings.bank_0 == BANK_VALID_SD)
     {
       settings.bank_0      = BANK_INVALID_APP;
       settings.bank_0_crc  = 0;
@@ -373,9 +377,9 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     // This handles cases where SoftDevice was not updated, hence bank0 keeps its settings.
     else
     {
-      settings.bank_0      = p_bootloader_settings->bank_0;
-      settings.bank_0_crc  = p_bootloader_settings->bank_0_crc;
-      settings.bank_0_size = p_bootloader_settings->bank_0_size;
+      settings.bank_0      = bootloader_settings.bank_0;
+      settings.bank_0_crc  = bootloader_settings.bank_0_crc;
+      settings.bank_0_size = bootloader_settings.bank_0_size;
     }
     settings.sd_image_size  = 0;
     settings.bl_image_size  = 0;
@@ -514,12 +518,11 @@ void bootloader_app_start(void)
 
 bool bootloader_dfu_sd_in_progress(void)
 {
-  bootloader_settings_t const * p_bootloader_settings;
+  bootloader_settings_t bootloader_settings;
+  bootloader_settings_get(&bootloader_settings);
 
-  bootloader_util_settings_get(&p_bootloader_settings);
-
-  if (p_bootloader_settings->bank_0 == BANK_VALID_SD ||
-      p_bootloader_settings->bank_1 == BANK_VALID_BOOT)
+  if (bootloader_settings.bank_0 == BANK_VALID_SD ||
+      bootloader_settings.bank_1 == BANK_VALID_BOOT)
   {
     return true;
   }
@@ -568,21 +571,39 @@ uint32_t bootloader_dfu_sd_update_finalize(void)
 }
 
 
-void bootloader_settings_get(bootloader_settings_t * const p_settings)
+void bootloader_settings_get(bootloader_settings_t * p_settings)
 {
   bootloader_settings_t const * p_bootloader_settings;
   bootloader_util_settings_get(&p_bootloader_settings);
 
-  *p_settings = *p_bootloader_settings;
+  switch (p_bootloader_settings->settings_version)
+  {
+  case BOOTLOADER_SETTINGS_VERSION:
+    *p_settings = *p_bootloader_settings;
+    break;
+  default:
+    p_settings->settings_version = BOOTLOADER_SETTINGS_VERSION;
+    p_settings->bank_0         = BANK_INVALID_APP;
+    p_settings->bank_0_crc     = 0;
+    p_settings->bank_0_size    = 0;
+    p_settings->sd_image_start = 0;
+    p_settings->sd_image_size  = 0;
+    p_settings->bl_image_size  = 0;
+    p_settings->app_image_size = 0;
+    p_settings->bank_1         = BANK_INVALID_APP;
+    p_settings->bank_1_crc     = 0;
+    p_settings->bank_1_size    = 0;
+    break;
+  }
 }
 
 
 bool bootloader_dfu_swap_in_progress(void)
 {
-  bootloader_settings_t const * p_bootloader_settings;
-  bootloader_util_settings_get(&p_bootloader_settings);
+  bootloader_settings_t bootloader_settings;
+  bootloader_settings_get(&bootloader_settings);
 
-  return p_bootloader_settings->bank_1 == BANK_VALID_APP;
+  return bootloader_settings.bank_1 == BANK_VALID_APP;
 }
 
 

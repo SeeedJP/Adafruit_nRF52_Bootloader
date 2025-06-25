@@ -33,11 +33,8 @@ volatile uint32_t m_uicr_mbr_params_page_address = BOOTLOADER_MBR_PARAMS_PAGE_AD
 
 void bootloader_util_settings_get(const bootloader_settings_t ** pp_bootloader_settings)
 {
-    // Read only pointer to bootloader settings in flash. 
-    bootloader_settings_t const * const p_bootloader_settings =
-        (bootloader_settings_t *)&m_boot_settings[0];        
-
-    *pp_bootloader_settings = p_bootloader_settings;
+  // Read only pointer to bootloader settings in flash. 
+  *pp_bootloader_settings = (bootloader_settings_t *)&m_boot_settings[0];;
 }
 
 void bootloader_mbr_addrs_populate(void)
