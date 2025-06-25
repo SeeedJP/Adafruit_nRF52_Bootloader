@@ -191,6 +191,11 @@ int main(void) {
   // Return when DFU process is complete (or not entered at all)
   check_dfu_mode();
 
+  // TODO matsujirushi
+  if (bootloader_dfu_swap_in_progress()) {
+    bootloader_dfu_swap_continue();
+  }
+
   // Reset peripherals
   board_teardown();
 
@@ -392,7 +397,7 @@ static uint32_t ble_stack_init(void) {
 void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info) {
   volatile uint32_t* ARM_CM_DHCSR = ((volatile uint32_t*) 0xE000EDF0UL); /* Cortex M CoreDebug->DHCSR */
   if ((*ARM_CM_DHCSR) & 1UL) __asm("BKPT #0\n"); /* Only halt mcu if debugger is attached */
-  while (true){} // TODO
+  while (true){} // TODO matsujirushi
   NVIC_SystemReset();
 }
 

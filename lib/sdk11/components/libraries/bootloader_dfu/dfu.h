@@ -129,6 +129,8 @@ uint32_t dfu_sd_image_swap(void);
  */
 uint32_t dfu_init_pkt_complete(void);
 
+uint32_t dfu_app_image_swap(void);
+
 #endif // DFU_H__
 
 /** @} */

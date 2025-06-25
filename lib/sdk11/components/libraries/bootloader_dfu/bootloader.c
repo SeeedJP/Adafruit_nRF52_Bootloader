@@ -161,6 +161,11 @@ void matsujirushi_print_bootloader_sesttings()
   }
   PRINTF("  bank_0_crc: 0x%04x", p_bootloader_settings->bank_0_crc);
   PRINTF("  bank_0_size: %lu\r\n", p_bootloader_settings->bank_0_size);
+  PRINTF("                                ");
+  PRINTF("  sd_image_start: 0x%08lx", p_bootloader_settings->sd_image_start);
+  PRINTF("  sd_image_size: %lu", p_bootloader_settings->sd_image_size);
+  PRINTF("  bl_image_size: %lu", p_bootloader_settings->bl_image_size);
+  PRINTF("  app_image_size: %lu\r\n", p_bootloader_settings->app_image_size);
   PRINTF("  bank_1: 0x%04x", p_bootloader_settings->bank_1);
   switch (p_bootloader_settings->bank_1) {
   case BANK_VALID_APP: PRINTF("(BANK_VALID_APP)"); break;
@@ -171,10 +176,6 @@ void matsujirushi_print_bootloader_sesttings()
   default:              PRINTF("()"); break;
   }
   PRINTF("\r\n");
-  PRINTF("  sd_image_size: %lu", p_bootloader_settings->sd_image_size);
-  PRINTF("  bl_image_size: %lu", p_bootloader_settings->bl_image_size);
-  PRINTF("  app_image_size: %lu", p_bootloader_settings->app_image_size);
-  PRINTF("  sd_image_start: 0x%08lx\r\n", p_bootloader_settings->sd_image_start);
 }
 
 
@@ -267,6 +268,9 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
   case DFU_UF2_BOOTLOADER_COMPLETE:
     PRINTF("(DFU_UF2_BOOTLOADER_COMPLETE)");
     break;
+  case DFU_UPDATE_SWAP_COMPLETE:
+    PRINTF("(DFU_UPDATE_SWAP_COMPLETE)");
+    break;
   default:
     PRINTF("()");
     break;
@@ -277,28 +281,60 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
 
   bootloader_util_settings_get(&p_bootloader_settings);
 
-  if (update_status.status_code == DFU_UPDATE_APP_COMPLETE)
+  if (update_status.status_code == DFU_BANK_0_ERASED)
   {
-    settings.bank_0_crc  = update_status.app_crc;
-    settings.bank_0_size = update_status.app_size;
-    settings.bank_0      = BANK_VALID_APP;
-    settings.bank_1      = BANK_INVALID_APP;
+    settings.bank_0         = BANK_INVALID_APP;
+    settings.bank_0_crc     = 0;
+    settings.bank_0_size    = 0;
+    settings.sd_image_start = 0;
+    settings.sd_image_size  = 0;
+    settings.bl_image_size  = 0;
+    settings.app_image_size = 0;
+    settings.bank_1         = p_bootloader_settings->bank_1;
 
-    m_update_status      = BOOTLOADER_SETTINGS_SAVING;
+    // m_update_status = BOOTLOADER_SETTINGS_SAVING;
+    bootloader_settings_save(&settings);
+  }
+  else if (update_status.status_code == DFU_UPDATE_APP_COMPLETE)
+  {
+    settings.bank_0         = BANK_VALID_APP;
+    settings.bank_0_crc     = update_status.app_crc;
+    settings.bank_0_size    = update_status.app_size;
+    settings.sd_image_start = 0;
+    settings.sd_image_size  = 0;
+    settings.bl_image_size  = 0;
+    settings.app_image_size = 0;
+    settings.bank_1         = BANK_INVALID_APP;
+
+    m_update_status = BOOTLOADER_SETTINGS_SAVING;
+    bootloader_settings_save(&settings);
+  }
+  else if (update_status.status_code == DFU_UPDATE_SWAP_COMPLETE)
+  {
+    settings.bank_0         = BANK_INVALID_APP;
+    settings.bank_0_crc     = 0;
+    settings.bank_0_size    = 0;
+    settings.sd_image_start = 0;
+    settings.sd_image_size  = 0;
+    settings.bl_image_size  = 0;
+    settings.app_image_size = 0;
+    settings.bank_1         = BANK_VALID_APP;
+
+    m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
   }
   else if (update_status.status_code == DFU_UPDATE_SD_COMPLETE)
   {
+    settings.bank_0         = BANK_VALID_SD;
     settings.bank_0_crc     = update_status.app_crc;
     settings.bank_0_size    = update_status.sd_size + update_status.bl_size + update_status.app_size;
-    settings.bank_0         = BANK_VALID_SD;
-    settings.bank_1         = BANK_INVALID_APP;
+    settings.sd_image_start = update_status.sd_image_start;
     settings.sd_image_size  = update_status.sd_size;
     settings.bl_image_size  = update_status.bl_size;
     settings.app_image_size = update_status.app_size;
-    settings.sd_image_start = update_status.sd_image_start;
+    settings.bank_1         = BANK_INVALID_APP;
 
-    m_update_status         = BOOTLOADER_SETTINGS_SAVING;
+    m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
   }
   else if (update_status.status_code == DFU_UPDATE_BOOT_COMPLETE)
@@ -306,36 +342,35 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     settings.bank_0         = p_bootloader_settings->bank_0;
     settings.bank_0_crc     = p_bootloader_settings->bank_0_crc;
     settings.bank_0_size    = p_bootloader_settings->bank_0_size;
-    settings.bank_1         = BANK_VALID_BOOT;
     settings.sd_image_size  = update_status.sd_size;
     settings.bl_image_size  = update_status.bl_size;
     settings.app_image_size = update_status.app_size;
+    settings.bank_1         = BANK_VALID_BOOT;
 
-    m_update_status         = BOOTLOADER_SETTINGS_SAVING;
+    m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
   }
   else if (update_status.status_code == DFU_UPDATE_SD_SWAPPED)
   {
     if (p_bootloader_settings->bank_0 == BANK_VALID_SD)
     {
-      settings.bank_0_crc     = 0;
-      settings.bank_0_size    = 0;
-      settings.bank_0         = BANK_INVALID_APP;
+      settings.bank_0      = BANK_INVALID_APP;
+      settings.bank_0_crc  = 0;
+      settings.bank_0_size = 0;
     }
     // This handles cases where SoftDevice was not updated, hence bank0 keeps its settings.
     else
     {
-      settings.bank_0         = p_bootloader_settings->bank_0;
-      settings.bank_0_crc     = p_bootloader_settings->bank_0_crc;
-      settings.bank_0_size    = p_bootloader_settings->bank_0_size;
+      settings.bank_0      = p_bootloader_settings->bank_0;
+      settings.bank_0_crc  = p_bootloader_settings->bank_0_crc;
+      settings.bank_0_size = p_bootloader_settings->bank_0_size;
     }
-
-    settings.bank_1         = BANK_INVALID_APP;
     settings.sd_image_size  = 0;
     settings.bl_image_size  = 0;
     settings.app_image_size = 0;
+    settings.bank_1         = BANK_INVALID_APP;
 
-    m_update_status         = BOOTLOADER_SETTINGS_SAVING;
+    m_update_status = BOOTLOADER_SETTINGS_SAVING;
     bootloader_settings_save(&settings);
   }
   else if (update_status.status_code == DFU_TIMEOUT)
@@ -352,15 +387,6 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     APP_ERROR_CHECK(err_code);
 
     m_update_status = BOOTLOADER_TIMEOUT;
-  }
-  else if (update_status.status_code == DFU_BANK_0_ERASED)
-  {
-    settings.bank_0_crc  = 0;
-    settings.bank_0_size = 0;
-    settings.bank_0      = BANK_INVALID_APP;
-    settings.bank_1      = p_bootloader_settings->bank_1;
-
-    bootloader_settings_save(&settings);
   }
   else if (update_status.status_code == DFU_RESET)
   {
@@ -542,4 +568,19 @@ void bootloader_settings_get(bootloader_settings_t * const p_settings)
   p_settings->bl_image_size  = p_bootloader_settings->bl_image_size;
   p_settings->app_image_size = p_bootloader_settings->app_image_size;
   p_settings->sd_image_start = p_bootloader_settings->sd_image_start;
+}
+
+
+bool bootloader_dfu_swap_in_progress(void)
+{
+  bootloader_settings_t const * p_bootloader_settings;
+  bootloader_util_settings_get(&p_bootloader_settings);
+
+  return p_bootloader_settings->bank_1 == BANK_VALID_APP;
+}
+
+
+uint32_t bootloader_dfu_swap_continue(void)
+{
+  return dfu_app_image_swap();
 }

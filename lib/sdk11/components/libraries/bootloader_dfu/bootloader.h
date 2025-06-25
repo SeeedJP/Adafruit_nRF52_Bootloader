@@ -94,6 +94,9 @@ uint32_t bootloader_dfu_sd_update_finalize(void);
 
 void bootloader_mbr_addrs_populate(void);
 
+bool bootloader_dfu_swap_in_progress(void);
+uint32_t bootloader_dfu_swap_continue(void);
+
 #endif // BOOTLOADER_H__
 
 /**@} */

@@ -212,44 +212,18 @@ static uint32_t dfu_activate_sd(void)
  *
  * @return NRF_SUCCESS on success. Error code otherwise.
  */
-static uint32_t dfu_activate_app(void)
+static uint32_t dfu_activate_swap(void)
 {
-    uint32_t err_code = NRF_SUCCESS;
+    dfu_update_status_t update_status;
 
-    if ( is_ota() )
-    {
-        // Erase
-        err_code = pstorage_clear(&m_storage_handle_app, m_start_packet.app_image_size);
-        APP_ERROR_CHECK(err_code);
+    memset(&update_status, 0, sizeof(dfu_update_status_t ));
+    update_status.status_code = DFU_UPDATE_SWAP_COMPLETE;
+    update_status.app_crc     = m_image_crc;
+    update_status.app_size    = m_start_packet.app_image_size;
 
-        // Write
-        err_code = pstorage_store(&m_storage_handle_app, (uint8_t *)m_storage_handle_swap.block_id, m_start_packet.app_image_size, 0);
-    }
-    else
-    {
-        // Erase
-        flash_nrf5x_erase(m_storage_handle_app.block_id, m_start_packet.app_image_size);
-        pstorage_callback_handler(&m_storage_handle_app, PSTORAGE_CLEAR_OP_CODE, NRF_SUCCESS, NULL, 0);
+    bootloader_dfu_update_process(update_status);
 
-        // Write
-        flash_nrf5x_write(m_storage_handle_app.block_id, (const void*)m_storage_handle_swap.block_id, m_start_packet.app_image_size, false);
-        flash_nrf5x_flush(false);
-        pstorage_callback_handler(&m_storage_handle_app, PSTORAGE_STORE_OP_CODE, NRF_SUCCESS, (uint8_t*)m_storage_handle_swap.block_id, m_start_packet.app_image_size);
-    }
-
-    if (err_code == NRF_SUCCESS)
-    {
-        dfu_update_status_t update_status;
-
-        memset(&update_status, 0, sizeof(dfu_update_status_t ));
-        update_status.status_code = DFU_UPDATE_APP_COMPLETE;
-        update_status.app_crc     = m_image_crc;
-        update_status.app_size    = m_start_packet.app_image_size;
-
-        bootloader_dfu_update_process(update_status);
-    }
-
-    return err_code;
+    return NRF_SUCCESS;
 }
 
 
@@ -367,7 +341,7 @@ uint32_t dfu_start_pkt_handle(dfu_update_packet_t * p_packet)
         }
         else
         {
-            m_functions.activate = dfu_activate_app;
+            m_functions.activate = dfu_activate_swap;
         }
     }
 
@@ -787,4 +761,27 @@ uint32_t dfu_sd_image_validate(void)
     sd_mbr_cmd.params.compare.len  = bootloader_settings.sd_image_size / sizeof(uint32_t);
 
     return sd_mbr_command(&sd_mbr_cmd);
+}
+
+
+uint32_t dfu_app_image_swap(void)
+{
+    APP_ERROR_CHECK_BOOL(!is_ota()); // not supported in OTA mode.
+
+    // Erase
+    flash_nrf5x_erase(DFU_BANK_0_REGION_START, DFU_IMAGE_MAX_SIZE_BANKED);  // TODO matsujirushi
+
+    // Write
+    flash_nrf5x_write(DFU_BANK_0_REGION_START, (const void*)DFU_BANK_1_REGION_START, DFU_IMAGE_MAX_SIZE_BANKED, false);
+    flash_nrf5x_flush(false);
+
+    // Update status
+    dfu_update_status_t update_status;
+    memset(&update_status, 0, sizeof(dfu_update_status_t));
+    update_status.status_code = DFU_UPDATE_APP_COMPLETE;
+    update_status.app_crc     = 0;
+    update_status.app_size    = 0;
+    bootloader_dfu_update_process(update_status);
+
+    return NRF_SUCCESS;
 }
