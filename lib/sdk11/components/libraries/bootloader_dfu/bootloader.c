@@ -145,44 +145,6 @@ static void wait_for_events(void)
 }
 
 
-void matsujirushi_print_bootloader_sesttings()
-{
-  bootloader_settings_t bootloader_settings;
-  bootloader_settings_get(&bootloader_settings);
-
-  PRINTF("Bootloader Settings:\r\n");
-  PRINTF("  settings_version: %u\r\n", bootloader_settings.settings_version);
-  PRINTF("  bank_0: 0x%04x", bootloader_settings.bank_0);
-  switch (bootloader_settings.bank_0) {
-  case BANK_VALID_APP: PRINTF("(BANK_VALID_APP)"); break;
-  case BANK_VALID_SD:   PRINTF("(BANK_VALID_SD)"); break;
-  case BANK_VALID_BOOT: PRINTF("(BANK_VALID_BOOT)"); break;
-  case BANK_ERASED:     PRINTF("(BANK_ERASED)"); break;
-  case BANK_INVALID_APP: PRINTF("(BANK_INVALID_APP)"); break;
-  default:              PRINTF("()"); break;
-  }
-  PRINTF("  bank_0_crc: 0x%04x", bootloader_settings.bank_0_crc);
-  PRINTF("  bank_0_size: %lu\r\n", bootloader_settings.bank_0_size);
-  PRINTF("                                 ");
-  PRINTF("  sd_image_start: 0x%08lx", bootloader_settings.sd_image_start);
-  PRINTF("  sd_image_size: %lu", bootloader_settings.sd_image_size);
-  PRINTF("  bl_image_size: %lu", bootloader_settings.bl_image_size);
-  PRINTF("  app_image_size: %lu\r\n", bootloader_settings.app_image_size);
-  PRINTF("  bank_1: 0x%04x", bootloader_settings.bank_1);
-  switch (bootloader_settings.bank_1) {
-  case BANK_VALID_APP: PRINTF("(BANK_VALID_APP)"); break;
-  case BANK_VALID_SD:   PRINTF("(BANK_VALID_SD)"); break;
-  case BANK_VALID_BOOT: PRINTF("(BANK_VALID_BOOT)"); break;
-  case BANK_ERASED:     PRINTF("(BANK_ERASED)"); break;
-  case BANK_INVALID_APP: PRINTF("(BANK_INVALID_APP)"); break;
-  default:              PRINTF("()"); break;
-  }
-  PRINTF("  bank_1_crc: 0x%04x", bootloader_settings.bank_1_crc);
-  PRINTF("  bank_1_size: %lu\r\n", bootloader_settings.bank_1_size);
-  PRINTF("\r\n");
-}
-
-
 bool bootloader_app_is_valid(void)
 {
   bool success = false;
@@ -282,8 +244,6 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     break;
   }
   PRINTF(")\r\n");
-
-  matsujirushi_print_bootloader_sesttings();
 
   bootloader_settings_get(&bootloader_settings);
 
@@ -415,7 +375,7 @@ void bootloader_dfu_update_process(dfu_update_status_t update_status)
     // No implementation needed.
   }
 
-  matsujirushi_print_bootloader_sesttings();
+  bootloader_sesttings_print();
 }
 
 
@@ -595,6 +555,44 @@ void bootloader_settings_get(bootloader_settings_t * p_settings)
     p_settings->bank_1_size    = 0;
     break;
   }
+}
+
+
+void bootloader_sesttings_print(void)
+{
+  bootloader_settings_t bootloader_settings;
+  bootloader_settings_get(&bootloader_settings);
+
+  PRINTF("Bootloader Settings:\r\n");
+  PRINTF("  settings_version: %u\r\n", bootloader_settings.settings_version);
+  PRINTF("  bank_0: 0x%04x", bootloader_settings.bank_0);
+  switch (bootloader_settings.bank_0) {
+  case BANK_VALID_APP: PRINTF("(BANK_VALID_APP)"); break;
+  case BANK_VALID_SD:   PRINTF("(BANK_VALID_SD)"); break;
+  case BANK_VALID_BOOT: PRINTF("(BANK_VALID_BOOT)"); break;
+  case BANK_ERASED:     PRINTF("(BANK_ERASED)"); break;
+  case BANK_INVALID_APP: PRINTF("(BANK_INVALID_APP)"); break;
+  default:              PRINTF("()"); break;
+  }
+  PRINTF("  bank_0_crc: 0x%04x", bootloader_settings.bank_0_crc);
+  PRINTF("  bank_0_size: %lu\r\n", bootloader_settings.bank_0_size);
+  PRINTF("                                 ");
+  PRINTF("  sd_image_start: 0x%08lx", bootloader_settings.sd_image_start);
+  PRINTF("  sd_image_size: %lu", bootloader_settings.sd_image_size);
+  PRINTF("  bl_image_size: %lu", bootloader_settings.bl_image_size);
+  PRINTF("  app_image_size: %lu\r\n", bootloader_settings.app_image_size);
+  PRINTF("  bank_1: 0x%04x", bootloader_settings.bank_1);
+  switch (bootloader_settings.bank_1) {
+  case BANK_VALID_APP: PRINTF("(BANK_VALID_APP)"); break;
+  case BANK_VALID_SD:   PRINTF("(BANK_VALID_SD)"); break;
+  case BANK_VALID_BOOT: PRINTF("(BANK_VALID_BOOT)"); break;
+  case BANK_ERASED:     PRINTF("(BANK_ERASED)"); break;
+  case BANK_INVALID_APP: PRINTF("(BANK_INVALID_APP)"); break;
+  default:              PRINTF("()"); break;
+  }
+  PRINTF("  bank_1_crc: 0x%04x", bootloader_settings.bank_1_crc);
+  PRINTF("  bank_1_size: %lu\r\n", bootloader_settings.bank_1_size);
+  PRINTF("\r\n");
 }
 
 

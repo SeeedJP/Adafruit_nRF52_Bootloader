@@ -26,8 +26,6 @@
 #include "bootloader_types.h"
 #include <dfu_types.h>
 
-void matsujirushi_print_bootloader_sesttings();
-
 /**@brief Function for initializing the Bootloader.
  * 
  * @retval     NRF_SUCCESS If bootloader was succesfully initialized. 
@@ -94,6 +92,7 @@ uint32_t bootloader_dfu_sd_update_finalize(void);
 
 void bootloader_mbr_addrs_populate(void);
 
+void bootloader_sesttings_print(void);
 bool bootloader_dfu_swap_in_progress(void);
 uint32_t bootloader_dfu_swap_continue(void);
 
