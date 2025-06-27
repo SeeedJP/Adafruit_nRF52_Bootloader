@@ -536,25 +536,7 @@ void bootloader_settings_get(bootloader_settings_t * p_settings)
   bootloader_settings_t const * p_bootloader_settings;
   bootloader_util_settings_get(&p_bootloader_settings);
 
-  switch (p_bootloader_settings->settings_version)
-  {
-  case BOOTLOADER_SETTINGS_VERSION:
-    *p_settings = *p_bootloader_settings;
-    break;
-  default:
-    p_settings->settings_version = BOOTLOADER_SETTINGS_VERSION;
-    p_settings->bank_0         = BANK_INVALID_APP;
-    p_settings->bank_0_crc     = 0;
-    p_settings->bank_0_size    = 0;
-    p_settings->sd_image_start = 0;
-    p_settings->sd_image_size  = 0;
-    p_settings->bl_image_size  = 0;
-    p_settings->app_image_size = 0;
-    p_settings->bank_1         = BANK_INVALID_APP;
-    p_settings->bank_1_crc     = 0;
-    p_settings->bank_1_size    = 0;
-    break;
-  }
+  *p_settings = *p_bootloader_settings;
 }
 
 
