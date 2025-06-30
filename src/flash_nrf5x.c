@@ -94,7 +94,7 @@ void flash_nrf5x_write (uint32_t dst, void const *src, size_t len, bool need_era
   for (uint32_t i = 0; i < page_count; i++)
   {
       uint32_t const offset = i * FLASH_PAGE_SIZE;
-      flash_nrf5x_write_single_page(dst + offset, (void const *)((uint8_t const *)src + offset), len - offset < FLASH_PAGE_SIZE ? len - offset : FLASH_PAGE_SIZE, false);
+      flash_nrf5x_write_single_page(dst + offset, (void const *)((uint8_t const *)src + offset), len - offset < FLASH_PAGE_SIZE ? len - offset : FLASH_PAGE_SIZE, need_erase);
   }
 }
 
