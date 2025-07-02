@@ -199,6 +199,9 @@ C_SRC += \
 
 endif
 
+# Segger RTT
+C_SRC += lib/SEGGER_RTT/RTT/SEGGER_RTT.c
+
 #------------------------------------------------------------------------------
 # Assembly Files
 #------------------------------------------------------------------------------
@@ -249,6 +252,9 @@ IPATH += \
 IPATH += \
   $(SD_PATH)/$(SD_FILENAME)_API/include \
   $(SD_PATH)/$(SD_FILENAME)_API/include/nrf52
+
+# Segger RTT
+IPATH += lib/SEGGER_RTT/RTT
 
 #------------------------------------------------------------------------------
 # Compiler Flags
@@ -318,9 +324,6 @@ CFLAGS += -DMK_BOOTLOADER_VERSION='($(word 1,$(_VER)) << 16) + ($(word 2,$(_VER)
 # Debug option use RTT for printf
 ifeq ($(DEBUG), 1)
   CFLAGS += -DCFG_DEBUG -DSEGGER_RTT_MODE_DEFAULT=SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL
-  RTT_SRC = lib/SEGGER_RTT
-  IPATH += $(RTT_SRC)/RTT
-  C_SRC += $(RTT_SRC)/RTT/SEGGER_RTT.c
   DFU_APP_DATA_RESERVED = 0
 
 	# expand bootloader address to 28KB/40KB of reserved app
