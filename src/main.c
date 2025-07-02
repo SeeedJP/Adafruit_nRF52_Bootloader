@@ -187,14 +187,14 @@ int main(void) {
     led_state(STATE_WRITING_FINISHED);
   }
 
-  // Check all inputs and enter DFU if needed
-  // Return when DFU process is complete (or not entered at all)
-  check_dfu_mode();
-
   // Move app of bank1 to bank0
   if (bootloader_dfu_swap_in_progress()) {
     bootloader_dfu_swap_continue();
   }
+
+  // Check all inputs and enter DFU if needed
+  // Return when DFU process is complete (or not entered at all)
+  check_dfu_mode();
 
   // Reset peripherals
   board_teardown();
