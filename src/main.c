@@ -175,6 +175,8 @@ int main(void) {
   PRINTF("Bootloader Start\r\n");
   led_state(STATE_BOOTLOADER_STARTED);
 
+  bootloader_sesttings_print();
+
   // When updating SoftDevice, bootloader will reset before swapping SD
   if (bootloader_dfu_sd_in_progress()) {
     led_state(STATE_WRITING_STARTED);
@@ -183,6 +185,11 @@ int main(void) {
     bootloader_dfu_sd_update_finalize();
 
     led_state(STATE_WRITING_FINISHED);
+  }
+
+  // Move app of bank1 to bank0
+  if (bootloader_dfu_swap_in_progress()) {
+    bootloader_dfu_swap_continue();
   }
 
   // Check all inputs and enter DFU if needed
@@ -390,6 +397,9 @@ static uint32_t ble_stack_init(void) {
 void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info) {
   volatile uint32_t* ARM_CM_DHCSR = ((volatile uint32_t*) 0xE000EDF0UL); /* Cortex M CoreDebug->DHCSR */
   if ((*ARM_CM_DHCSR) & 1UL) __asm("BKPT #0\n"); /* Only halt mcu if debugger is attached */
+#ifdef CFG_DEBUG
+  while (true){}
+#endif
   NVIC_SystemReset();
 }
 

@@ -216,6 +216,7 @@ static void process_dfu_packet(void * p_event_data, uint16_t event_size)
                         break;
 
                     case START_PACKET:
+                        PRINTF("START_PACKET received\r\n");
                         packet->params.start_packet =
                             (dfu_start_packet_t*)packet->params.data_packet.p_data_packet;
                         retval = dfu_start_pkt_handle(packet);
@@ -223,6 +224,7 @@ static void process_dfu_packet(void * p_event_data, uint16_t event_size)
                         break;
 
                     case INIT_PACKET:
+                        PRINTF("INIT_PACKET received\r\n");
                         (void)dfu_init_pkt_handle(packet);
                         retval = dfu_init_pkt_complete();
                         APP_ERROR_CHECK(retval);
@@ -231,6 +233,7 @@ static void process_dfu_packet(void * p_event_data, uint16_t event_size)
                         break;
 
                     case STOP_DATA_PACKET:
+                        PRINTF("STOP_DATA_PACKET received\r\n");
                         (void)dfu_image_validate();
                         (void)dfu_image_activate();
 

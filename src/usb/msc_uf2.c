@@ -222,6 +222,8 @@ void tud_msc_write10_complete_cb(uint8_t lun)
       {
         // update App
         update_status.status_code = DFU_UPDATE_APP_COMPLETE;
+        update_status.app_crc = 0;
+        update_status.app_size = 0;
 
         PRINTF("Application update complete\r\n");
       }

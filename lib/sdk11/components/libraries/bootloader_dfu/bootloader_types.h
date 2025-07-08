@@ -29,6 +29,8 @@
 
 #define BOOTLOADER_SVC_APP_DATA_PTR_GET 0x02
 
+#define BOOTLOADER_SETTINGS_VERSION 1
+
 /**@brief DFU Bank state code, which indicates wether the bank contains: A valid image, invalid image, or an erased flash.
   */
 typedef enum
@@ -42,16 +44,20 @@ typedef enum
 
 /**@brief Structure holding bootloader settings for application and bank data.
  */
-typedef struct
+typedef struct __attribute__((packed))
 {
     uint16_t bank_0;          /**< Variable to store if bank 0 contains a valid application. */
-    uint16_t bank_0_crc;      /**< If bank is valid, this field will contain a valid CRC of the total image. */
+    uint16_t bank_0_crc;      /**< If bank0 is valid, this field will contain a valid CRC of the total image. */
     uint16_t bank_1;          /**< Variable to store if bank 1 has been erased/prepared for new image. Bank 1 is only used in Banked Update scenario. */
+    uint16_t dummy;
     uint32_t bank_0_size;     /**< Size of active image in bank0 if present, otherwise 0. */
     uint32_t sd_image_size;   /**< Size of SoftDevice image in bank0 if bank_0 code is BANK_VALID_SD. */
     uint32_t bl_image_size;   /**< Size of Bootloader image in bank0 if bank_0 code is BANK_VALID_SD. */
     uint32_t app_image_size;  /**< Size of Application image in bank0 if bank_0 code is BANK_VALID_SD. */
     uint32_t sd_image_start;  /**< Location in flash where SoftDevice image is stored for SoftDevice update. */
+    uint16_t settings_version;
+    uint16_t bank_1_crc;      /**< If bank1 is valid, this field will contain a valid CRC of the total image. */
+    uint32_t bank_1_size;     /**< Size of active image in bank1 if present, otherwise 0. */
 } bootloader_settings_t;
 
 #endif // BOOTLOADER_TYPES_H__ 

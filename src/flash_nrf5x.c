@@ -58,16 +58,54 @@ void flash_nrf5x_flush (bool need_erase)
   _fl_addr = FLASH_CACHE_INVALID_ADDR;
 }
 
-void flash_nrf5x_write (uint32_t dst, void const *src, int len, bool need_erase)
+static void flash_nrf5x_write_single_page (uint32_t dst, void const *src, size_t len, bool need_erase)
 {
-  uint32_t newAddr = dst & ~(FLASH_PAGE_SIZE - 1);
+  uint32_t const dstAddr = dst & ~(FLASH_PAGE_SIZE - 1);
+  uint32_t const dstOffset = dst & (FLASH_PAGE_SIZE - 1);
 
-  if ( newAddr != _fl_addr )
+  if (dstOffset == 0)
+  {
+    if (_fl_addr != FLASH_CACHE_INVALID_ADDR)
+    {
+      PRINTF("WARNING: The page is not written to flash. 0x%08lX\r\n", _fl_addr);
+    }
+
+    memcpy(_fl_buf, (void const *)dstAddr, FLASH_PAGE_SIZE);
+    _fl_addr = dstAddr;
+  }
+
+  if (dstOffset + len > FLASH_PAGE_SIZE)
+  {
+    PRINTF("WARNING: Write crosses page boundary. dst=0x%08lX, len=%d\r\n", dst, len);
+    len = FLASH_PAGE_SIZE - dstOffset; // Truncate length
+  }
+
+  memcpy(_fl_buf + dstOffset, src, len);
+
+  if (dstOffset + len == FLASH_PAGE_SIZE)
   {
     flash_nrf5x_flush(need_erase);
-    _fl_addr = newAddr;
-    memcpy(_fl_buf, (void *) newAddr, FLASH_PAGE_SIZE);
   }
-  memcpy(_fl_buf + (dst & (FLASH_PAGE_SIZE - 1)), src, len);
 }
 
+void flash_nrf5x_write (uint32_t dst, void const *src, size_t len, bool need_erase)
+{
+  uint32_t const page_count = NRFX_CEIL_DIV(len, FLASH_PAGE_SIZE);
+  for (uint32_t i = 0; i < page_count; i++)
+  {
+      uint32_t const offset = i * FLASH_PAGE_SIZE;
+      flash_nrf5x_write_single_page(dst + offset, (void const *)((uint8_t const *)src + offset), len - offset < FLASH_PAGE_SIZE ? len - offset : FLASH_PAGE_SIZE, need_erase);
+  }
+}
+
+void flash_nrf5x_erase (uint32_t dst, size_t len)
+{
+  uint32_t const page_count = NRFX_CEIL_DIV(len, FLASH_PAGE_SIZE);
+
+  for (uint32_t i = 0; i < page_count; i++)
+  {
+    uint32_t const addr = dst + i * FLASH_PAGE_SIZE;
+    PRINTF("Erase 0x%08lX\r\n", addr);
+    nrfx_nvmc_page_erase(addr);
+  }
+}
