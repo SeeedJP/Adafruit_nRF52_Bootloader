@@ -212,7 +212,29 @@ static uint32_t dfu_activate_sd(void)
  *
  * @return NRF_SUCCESS on success. Error code otherwise.
  */
-static uint32_t dfu_activate_swap(void)
+static uint32_t dfu_activate_app(void)
+{
+    dfu_update_status_t update_status;
+
+    memset(&update_status, 0, sizeof(dfu_update_status_t ));
+    update_status.status_code = DFU_UPDATE_APP_COMPLETE;
+    update_status.app_crc     = m_image_crc;
+    update_status.app_size    = m_start_packet.app_image_size;
+
+    bootloader_dfu_update_process(update_status);
+
+    return NRF_SUCCESS;
+}
+
+
+/**@brief Function for activating received Application image.
+ *
+ *  @details This function will move the received application image fram swap (bank 1) to
+ *           application area (bank 0).
+ *
+ * @return NRF_SUCCESS on success. Error code otherwise.
+ */
+static uint32_t __attribute__((unused)) dfu_activate_swap(void)
 {
     dfu_update_status_t update_status;
 
@@ -333,15 +355,17 @@ uint32_t dfu_start_pkt_handle(dfu_update_packet_t * p_packet)
             return NRF_ERROR_DATA_SIZE;
         }
 
-        m_functions.prepare = dfu_prepare_func_swap_erase;
-        m_functions.cleared = dfu_cleared_func_swap;
         if (IS_UPDATING_BL(m_start_packet))
         {
+            m_functions.prepare = dfu_prepare_func_swap_erase;
+            m_functions.cleared = dfu_cleared_func_swap;
             m_functions.activate = dfu_activate_bl;
         }
         else
         {
-            m_functions.activate = dfu_activate_swap;
+            m_functions.prepare = dfu_prepare_func_app_erase;
+            m_functions.cleared = dfu_cleared_func_app;
+            m_functions.activate = dfu_activate_app;
         }
     }
 
